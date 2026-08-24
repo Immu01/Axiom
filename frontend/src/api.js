@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://axiom-backend-02r9.onrender.com';
 
 export async function sendMessageToBackend(message) {
   const response = await fetch(`${API_BASE_URL}/api/chat`, {
