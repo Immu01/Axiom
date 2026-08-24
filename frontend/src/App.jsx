@@ -1,11 +1,36 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { sendMessageToBackend } from './api';
+
+function MessageBody({ role, text }) {
+  if (role !== 'assistant') {
+    return <p className="whitespace-pre-wrap">{text}</p>;
+  }
+
+  return (
+    <div className="chat-md">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
+  );
+}
 
 function App() {
   const [messages, setMessages] = useState([
-    { 
-      role: 'assistant', 
+    {
+      role: 'assistant',
       text: 'Hello! I am Axiom, your AI assistant. How can I help you today?',
       provider: 'axiom'
     }
@@ -14,7 +39,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to the newest message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -50,7 +74,6 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-gray-100 font-sans">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-gray-800 border-b border-gray-700 shadow-sm">
         <div className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-blue-400" />
@@ -61,33 +84,29 @@ function App() {
         </div>
       </header>
 
-      {/* Chat History */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
         {messages.map((msg, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className={`flex gap-4 max-w-3xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            {/* Assistant/Error Avatar */}
             {msg.role !== 'user' && (
               <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${msg.role === 'error' ? 'bg-red-900/50 text-red-400' : 'bg-blue-600 text-white'}`}>
                 {msg.role === 'error' ? <AlertCircle className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
             )}
 
-            {/* Message Bubble */}
-            <div 
+            <div
               className={`relative px-5 py-3.5 rounded-2xl max-w-[85%] sm:max-w-[75%] shadow-sm leading-relaxed ${
-                msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-br-sm' 
+                msg.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-br-sm'
                   : msg.role === 'error'
                   ? 'bg-red-900/20 border border-red-800/50 text-red-200 rounded-bl-sm'
                   : 'bg-gray-800 border border-gray-700 text-gray-200 rounded-bl-sm'
               }`}
             >
-              <p className="whitespace-pre-wrap">{msg.text}</p>
-              
-              {/* Provider Badge for Assistant */}
+              <MessageBody role={msg.role} text={msg.text} />
+
               {msg.role === 'assistant' && msg.provider !== 'axiom' && (
                 <span className="absolute -bottom-5 left-1 text-[10px] uppercase font-bold tracking-wider text-gray-500">
                   via {msg.provider}
@@ -95,7 +114,6 @@ function App() {
               )}
             </div>
 
-            {/* User Avatar */}
             {msg.role === 'user' && (
               <div className="w-8 h-8 shrink-0 rounded-full bg-gray-700 flex items-center justify-center text-gray-300">
                 <User className="w-5 h-5" />
@@ -103,8 +121,7 @@ function App() {
             )}
           </div>
         ))}
-        
-        {/* Loading Indicator */}
+
         {isLoading && (
           <div className="flex gap-4 max-w-3xl mx-auto justify-start">
             <div className="w-8 h-8 shrink-0 rounded-full bg-blue-600 text-white flex items-center justify-center">
@@ -119,9 +136,8 @@ function App() {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Area */}
       <footer className="p-4 sm:p-6 bg-gray-900 border-t border-gray-800">
-        <form 
+        <form
           onSubmit={handleSubmit}
           className="max-w-3xl mx-auto relative flex items-center"
         >
