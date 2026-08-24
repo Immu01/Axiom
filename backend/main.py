@@ -11,15 +11,15 @@ from langchain_groq import ChatGroq
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
+# Load environment variables (ignored on Render if using environment dashboard, used locally)
 load_dotenv()
 
 app = FastAPI(title="Axiom API")
 
-# Configure CORS
+# Configure CORS (Allow localhost for dev, and we can add your GitHub Pages URL later)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["*"], # For now, allow all origins so GitHub Pages can connect easily
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
