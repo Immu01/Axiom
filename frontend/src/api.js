@@ -1,0 +1,18 @@
+const API_BASE_URL = 'http://localhost:8000';
+
+export async function sendMessageToBackend(message) {
+  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Network error occurred while contacting Axiom API.');
+  }
+
+  return await response.json();
+}
