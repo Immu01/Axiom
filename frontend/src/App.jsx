@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Loader2, AlertCircle, Sparkles, Wand2, Gem, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { sendMessageToBackend } from './api';
+
+const MODEL_OPTIONS = [
+  { value: 'auto', label: 'Auto', icon: Wand2, hint: 'Automatically picks the best available model' },
+  { value: 'gemini', label: 'Gemini', icon: Gem, hint: 'Always use Google Gemini' },
+  { value: 'groq', label: 'Groq', icon: Zap, hint: 'Always use Groq' },
+];
 
 function MessageBody({ role, text }) {
   if (role !== 'assistant') {
@@ -37,6 +43,7 @@ function App() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('auto');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -57,7 +64,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const data = await sendMessageToBackend(userMessage.text);
+      const data = await sendMessageToBackend(userMessage.text, selectedModel);
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', text: data.response, provider: data.provider }
@@ -78,9 +85,6 @@ function App() {
         <div className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-blue-400" />
           <h1 className="text-xl font-bold tracking-wide text-white">Axiom</h1>
-        </div>
-        <div className="text-xs font-medium px-2.5 py-1 bg-gray-700 text-gray-300 rounded-full">
-          Multi-LLM Engine
         </div>
       </header>
 
@@ -137,6 +141,29 @@ function App() {
       </main>
 
       <footer className="p-4 sm:p-6 bg-gray-900 border-t border-gray-800">
+        <div className="max-w-3xl mx-auto mb-3 flex items-center justify-center gap-2">
+          {MODEL_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const isActive = selectedModel === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                title={option.hint}
+                onClick={() => setSelectedModel(option.value)}
+                disabled={isLoading}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isActive
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
         <form
           onSubmit={handleSubmit}
           className="max-w-3xl mx-auto relative flex items-center"

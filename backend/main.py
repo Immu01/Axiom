@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -42,6 +43,7 @@ except Exception as e:
 
 class ChatRequest(BaseModel):
     message: str
+    model: Optional[str] = "auto"
 
 def extract_text(content):
     if content is None:
@@ -67,8 +69,48 @@ def extract_text(content):
 async def health_check():
     return {"status": "ok", "service": "Axiom Backend v1"}
 
+VALID_MODELS = {"auto", "gemini", "groq"}
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
+    selected_model = request.model if request.model in VALID_MODELS else "auto"
+
+    if selected_model == "gemini":
+        if not llm_primary:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini is currently unavailable. Please pick a different model."
+            )
+        try:
+            logger.info("Using user-selected model: Gemini...")
+            response = llm_primary.invoke(request.message)
+            clean_text = extract_text(response.content)
+            return {"response": clean_text, "provider": "gemini"}
+        except Exception as e:
+            logger.error(f"User-selected Gemini failed: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini is temporarily unavailable. Please try again or switch models."
+            )
+
+    if selected_model == "groq":
+        if not llm_fallback:
+            raise HTTPException(
+                status_code=503,
+                detail="Groq is currently unavailable. Please pick a different model."
+            )
+        try:
+            logger.info("Using user-selected model: Groq...")
+            response = llm_fallback.invoke(request.message)
+            clean_text = extract_text(response.content)
+            return {"response": clean_text, "provider": "groq"}
+        except Exception as e:
+            logger.error(f"User-selected Groq failed: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Groq is temporarily unavailable. Please try again or switch models."
+            )
+
     if llm_primary:
         try:
             logger.info("Attempting to use Primary Model (Gemini)...")
