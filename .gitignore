@@ -40,3 +40,6 @@ logs/
 .mypy_cache/
 .coverage
 htmlcov/
+
+# Local runtime data (SQLite, vault, shares)
+backend/data/

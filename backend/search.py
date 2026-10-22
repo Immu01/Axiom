@@ -1,8 +1,11 @@
 import os
 from datetime import date
+from urllib.parse import urlsplit
 
 import httpx
 from dotenv import load_dotenv
+
+import logutil
 
 load_dotenv()
 
@@ -16,39 +19,51 @@ async def web_search(query: str, n: int = 5) -> list[dict]:
     """Returns a list of {title, url, snippet}. Returns [] on any problem, so chat still works."""
     keys = _keys()
     if not keys:
-        print("[search] no TAVILY_API_KEYS set, skipping web search")
+        logutil.log("search_skipped", reason="no_key_configured")
         return []
 
     payload = {"query": query, "max_results": n, "search_depth": "basic"}
-    async with httpx.AsyncClient(timeout=12) as client:
-        for i, key in enumerate(keys):
+    import providers as _providers
+
+    client = _providers.get_client()
+    for i, key in enumerate(keys):
+        try:
+            r = await client.post(
+                "https://api.tavily.com/search",
+                json=payload,
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=12,
+            )
+        except httpx.HTTPError as e:
+            logutil.log("search_provider_failure", key_index=i + 1, reason=type(e).__name__)
+            continue
+
+        if r.status_code != 200:
+            logutil.log("search_provider_failure", key_index=i + 1, status=r.status_code)
+            continue
+
+        out = []
+        for item in r.json().get("results", []):
+            url = item.get("url", "")
             try:
-                r = await client.post(
-                    "https://api.tavily.com/search",
-                    json=payload,
-                    headers={"Authorization": f"Bearer {key}"},
-                )
-            except httpx.HTTPError as e:
-                print(f"[search] tavily key#{i + 1} network problem: {type(e).__name__}")
+                parsed = urlsplit(url)
+            except ValueError:
                 continue
-
-            if r.status_code != 200:
-                print(f"[search] tavily key#{i + 1} failed: {r.status_code} {r.text[:150]}")
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+            ):
                 continue
-
-            out = []
-            for item in r.json().get("results", []):
-                url = item.get("url", "")
-                if not url.startswith("http"):
-                    continue
-                out.append(
-                    {
-                        "title": (item.get("title") or url)[:120],
-                        "url": url,
-                        "snippet": (item.get("content") or "")[:500],
-                    }
-                )
-            return out[:n]
+            out.append(
+                {
+                    "title": (item.get("title") or url)[:120],
+                    "url": url,
+                    "snippet": (item.get("content") or "")[:500],
+                }
+            )
+        return out[:n]
     return []
 
 

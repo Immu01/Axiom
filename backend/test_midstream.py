@@ -1,9 +1,20 @@
 import json
+import os
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE = "http://127.0.0.1:8000"
-httpx.get(f"{BASE}/api/debug/clear")
-print(httpx.get(f"{BASE}/api/debug/break/groq/15").json())
+
+
+def debug(path):
+    r = httpx.post(f"{BASE}{path}", headers={"X-Admin-Token": os.getenv("ADMIN_TOKEN", "")}, timeout=30)
+    if r.status_code != 200:
+        raise SystemExit(f"Debug call failed ({r.status_code}). Set ADMIN_TOKEN in backend/.env and restart the server.")
+    return r.json()
+debug("/api/debug/clear")
+print(debug("/api/debug/break/groq/15"))
 
 body = {"messages": [{"role": "user", "content":
         "Write a 120-word story about a lighthouse keeper and a lost robot. Plain text, no formatting."}]}
@@ -25,7 +36,7 @@ with httpx.Client(timeout=90) as c:
                     print("ERROR EVENT:", data)
                 event = None
 
-httpx.get(f"{BASE}/api/debug/clear")
+debug("/api/debug/clear")
 
 print("\n===== ANSWER, SHOWN AS THE PROVIDERS WROTE IT =====")
 for provider, text in parts:

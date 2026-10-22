@@ -1,68 +1,58 @@
-# Axiom Backend Engine ⚡
+# Axiom Backend
 
-The high-performance, asynchronous orchestration core powering **Axiom**. Built on **FastAPI**, **HTTPX**, and **AsyncIO**, this engine provides resilient, multi-provider cascading failover, mid-stream token continuation, live web search retrieval (RAG), and multimodal document extraction.
+FastAPI gateway for streaming chat, provider/key/model failover, and local
+workspace services. See the repository [README](../README.md) for setup and
+deployment guidance.
 
----
+## Configuration
 
-## 🏛 Architecture Overview
+Copy `.env.example` to `.env` and configure provider keys. For deployment, set
+`ENVIRONMENT=production` (or `AUTH_REQUIRED=true`), `AXIOM_API_KEY`, and a
+high-entropy `ADMIN_TOKEN`. Keep admin and provider credentials on the backend;
+never bundle them into a public frontend.
+Use issued per-user keys for account-level data isolation and encrypted sync
+across devices; the shared gateway key is scoped to the caller's client address.
 
-- **Asynchronous Non-Blocking I/O**: High-concurrency token streaming using FastAPI and HTTPX async connection pooling.
-- **Cascading Failover Pipeline**: Seamless routing across Groq, Google Gemini, and OpenRouter with automatic provider fallback upon HTTP errors, timeouts, or rate limits (HTTP 429).
-- **Mid-Stream Resilient State Recovery**: Recovers interrupted token streams mid-sentence without losing earlier progress or creating token seams.
-- **Temporal Query Reformulation & RAG**: Automatically turns conversational messages into standalone search queries and queries Tavily API with citation generation.
-- **Multimodal Document Processing**: In-memory parsing of PDFs (`pypdf`), source code files across 25+ formats, CSV, and text.
+`CORS_ORIGINS` controls browser origins. `TRUST_PROXY=1` is appropriate only
+behind a trusted proxy that replaces forwarding headers. `MCP_ALLOWED_HOSTS`
+is an explicit allowlist for MCP hosts that may use HTTP or resolve to private
+addresses. Other MCP servers must use HTTPS and resolve only to public IPs.
 
----
+SQLite persists quotas, issued API-key hashes, shared chats, opaque encrypted
+vault payloads, user-scoped uploaded-document text/FTS, and latency observations.
+Select its directory with `AXIOM_DATA_DIR`.
 
-## 🚀 Quick Start
+## API
 
-### 1. Environment Setup
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+- `POST /api/chat/stream`: authenticated streaming chat; optional web search,
+  vision, tools, provider/model selection, and route preference.
+- `POST /api/chat/compare`: authenticated concurrent multi-provider SSE compare.
+- `POST /v1/chat/completions`: OpenAI-compatible completion API.
+- `GET /v1/models`: authenticated OpenAI-compatible model catalog.
+- `POST /api/title`: short chat title generation.
+- `POST /api/extract`: upload extraction for text, PDF, DOCX, XLSX, and PPTX.
+- `POST /api/share` and `GET /api/share/{id}`: create and read shareable chats.
+- `POST /api/vault` and `GET /api/vault/{id}`: store and retrieve opaque
+  owner-scoped ciphertext.
+- `GET /api/models`: authenticated configured model catalog.
+- `GET /api/health`: public liveness endpoint.
+- `GET /api/status`, `/api/stats`, `/api/config-check`, `/api/models/{provider}`,
+  and `/metrics`: admin-token protected diagnostics.
+- `POST /api/debug/*`: admin-token protected chaos-testing endpoints.
+- `POST`, `GET`, and `DELETE /api/admin/keys`: mint, list, and revoke user API keys.
 
-### 2. Configure Environment Variables
-Copy `.env.example` to `.env` and provide your API keys:
-```bash
-cp .env.example .env
-```
-Edit `.env` with your keys for Groq, Gemini, OpenRouter, and Tavily. Multiple comma-separated keys per provider are supported for key-level pool rotation.
+The backend implements lexical SQLite FTS, not embedding-based retrieval. It
+does not perform scanned-PDF OCR. The built-in Python tool intentionally
+supports only a bounded subset of Python syntax; it does not execute arbitrary
+Python code or permit imports, filesystem access, or network access.
 
-### 3. Launch Development Server
-```bash
-uvicorn main:app --reload --port 8000
-```
-The backend will be live at `http://127.0.0.1:8000`.
-
----
-
-## 📡 API Specification
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/chat/stream` | Server-Sent Events (SSE) chat stream with auto-failover and optional RAG |
-| `POST` | `/api/extract` | Multipart upload for text/PDF extraction (`pypdf`) |
-| `POST` | `/api/title` | Automated semantic title generator for chat threads |
-| `GET` | `/api/stats` | Real-time telemetry, provider uptime, served/failed metrics |
-| `GET` | `/api/status` | Current active model, key states, and cooldown countdowns |
-| `GET` | `/api/models/{provider}` | Query available upstream models for a provider |
-| `GET` | `/api/debug/fail/{provider}` | Chaos testing: simulate provider outage |
-| `GET` | `/api/debug/break/{provider}/{n}` | Chaos testing: simulate mid-stream break after *n* tokens |
-| `GET` | `/api/debug/clear` | Reset all simulated failures and cooldown states |
-
----
-
-## 🧪 Chaos & Automated Testing
-
-Axiom includes automated test scripts to verify cascading failover and mid-stream recovery:
+## Testing
 
 ```bash
-# Verify multi-provider fallback cascade
-python test_failover.py
-
-# Verify midstream interruption token stitching
-python test_midstream.py
+python -m pytest tests -q
 ```
+
+The unit/mocked tests do not call live provider APIs and need no provider keys.
+The scripts `test_failover.py` and `test_midstream.py` are optional manual
+integration checks and require a running backend, configured live provider
+keys, and an admin token.

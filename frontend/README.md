@@ -1,61 +1,34 @@
-# Axiom Frontend Client 🌐
+# Axiom Frontend
 
-The modern, ultra-responsive conversational interface for **Axiom**. Crafted with **React 19**, **Vite 8**, and styled with custom CSS inspired by Claude and ChatGPT desktop workspaces.
+React 19 and Vite chat client for the Axiom gateway. Messages and non-secret
+preferences are stored in browser `localStorage`; gateway/BYOK credentials remain
+in tab memory. Creating a share link stores a copy on the backend. The client
+supports streaming SSE, provider/model selection, routing
+preferences, compare mode, web search, document/image attachments, browser speech
+input/output, MCP configuration, and sandboxed HTML artifact previews.
 
----
+## Development
 
-## ✨ Features
-
-- **Ultra-Responsive Token Streaming**: Native Server-Sent Events (SSE) reader with instantaneous token rendering and auto-scroll tracking.
-- **Failover Status Telemetry**: Live badges and announcements when an answer is salvaged by a secondary provider.
-- **Collapsible Reasoning Accordions**: Full parsing for `<think>...</think>` Chain-of-Thought (CoT) tokens (e.g. DeepSeek-R1, Gemini Thinking Experimental).
-- **Perplexity-Style Source Drawers**: Interactive expandable citations for grounded web search results with domain previews.
-- **Multimodal Upload Capsule**: Drag-and-drop and clipboard paste for images (auto-scaled via HTML5 Canvas) and documents (PDF, code, text).
-- **Voice Intelligence**: Bi-directional Web Speech API integration with real-time Speech-to-Text (STT) and scored neural Text-to-Speech (TTS).
-- **Chaos Engineering Cockpit**: Modal for real-time telemetry, node state visualization, and simulated failure injection.
-- **Local Data Persistence**: Zero-cloud privacy with `localStorage` persistence, chat pinning, chronological categorization, Markdown export, and JSON backup/restore.
-
----
-
-## 🛠 Technology Stack
-
-- **Framework**: [React 19](https://react.dev/)
-- **Bundler**: [Vite 8](https://vitejs.dev/) with Rolldown / Oxc
-- **Typography**: `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`
-- **Markdown & Syntax**: `react-markdown`, `remark-gfm`, `rehype-highlight`, `highlight.js`
-- **Iconography**: `lucide-react`
-
----
-
-## 🚀 Getting Started
-
-### 1. Install Dependencies
 ```bash
-cd frontend
-npm install
-```
-
-### 2. Start Development Server
-```bash
+npm ci
+cp .env.example .env.local
 npm run dev
 ```
-The application will launch at `http://localhost:5173`. Ensure the backend server is running concurrently at `http://127.0.0.1:8000`.
 
-### 3. Production Build
+Configure `VITE_API_URL` in `.env.local` if the backend is not at
+`http://127.0.0.1:8000`. For a local single-user setup, `VITE_AXIOM_API_KEY` can
+provide the gateway key. Do not ship a shared backend key in a public frontend.
+Admin-only cockpit actions additionally need `VITE_ADMIN_TOKEN`; only provide
+that to a trusted local/admin client.
+
+## Validation
+
 ```bash
+npm test
+npm run lint
 npm run build
-npm run preview
 ```
 
----
-
-## ⌨️ Global Shortcuts
-
-| Shortcut | Action |
-| :--- | :--- |
-| `⌘K` / `Ctrl+K` | Open chat search & spotlight |
-| `⌘B` / `Ctrl+B` | Toggle collapsible sidebar |
-| `⌘N` / `Ctrl+N` | Start a new chat session |
-| `Enter` | Send message |
-| `Shift + Enter` | New line in composer |
-| `Esc` | Dismiss modals, dropdowns, and search |
+Keyboard shortcuts: `⌘K` / `Ctrl+K` focuses chat search, `⌘B` / `Ctrl+B`
+toggles the sidebar, `⌘N` / `Ctrl+N` starts a new chat, and `Esc` closes open
+menus and dialogs.

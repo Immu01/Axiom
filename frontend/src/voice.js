@@ -66,6 +66,8 @@ function pickVoice() {
 // Turns markdown into text that sounds natural when read aloud
 export function plainText(md) {
   return md
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<think>[\s\S]*$/i, "")
     .replace(/```[\s\S]*?```/g, " (code block omitted). ")
     .replace(/`([^`]*)`/g, "$1")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")

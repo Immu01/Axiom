@@ -1,6 +1,10 @@
 import json
+import os
 import time
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE = "http://127.0.0.1:8000"
 
@@ -33,6 +37,13 @@ def get(path):
     return httpx.get(f"{BASE}{path}", timeout=30).json()
 
 
+def debug(path):
+    r = httpx.post(f"{BASE}{path}", headers={"X-Admin-Token": os.getenv("ADMIN_TOKEN", "")}, timeout=30)
+    if r.status_code != 200:
+        raise SystemExit(f"Debug call failed ({r.status_code}). Set ADMIN_TOKEN in backend/.env and restart the server.")
+    return r.json()
+
+
 results = []
 
 
@@ -47,7 +58,7 @@ for name, info in cfg.items():
     print(f"  {name}: keys={info['keys_loaded']} model={info['model']}")
     check(f"{name} is configured", info["keys_loaded"] > 0 and info["model"] != "(not set)")
 
-get("/api/debug/clear")
+debug("/api/debug/clear")
 
 print("\n== Test 1: normal request (expect groq) ==")
 p, t, e, f = ask()
@@ -55,24 +66,24 @@ check("Groq answers normally", p == "groq" and bool(t), f"provider={p} first_tok
 print("  reply:", t[:100])
 
 print("\n== Test 2: Groq broken (expect gemini) ==")
-get("/api/debug/fail/groq")
+debug("/api/debug/fail/groq")
 p, t, e, f = ask()
 check("Switches to Gemini", p == "gemini" and bool(t), f"provider={p} error={e}")
 print("  reply:", t[:100])
 
 print("\n== Test 3: Groq + Gemini broken (expect openrouter) ==")
-get("/api/debug/fail/gemini")
+debug("/api/debug/fail/gemini")
 p, t, e, f = ask()
 check("Switches to OpenRouter", p == "openrouter" and bool(t), f"provider={p} error={e}")
 print("  reply:", t[:100])
 
 print("\n== Test 4: everything broken (expect friendly error) ==")
-get("/api/debug/fail/openrouter")
+debug("/api/debug/fail/openrouter")
 p, t, e, f = ask()
 check("Friendly error, no raw codes", bool(e) and not t and "429" not in e, f"message={e}")
 
 print("\n== Test 5: healed (expect groq again) ==")
-get("/api/debug/clear")
+debug("/api/debug/clear")
 p, t, e, f = ask()
 check("Back to Groq after healing", p == "groq" and bool(t), f"provider={p}")
 
