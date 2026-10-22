@@ -1,0 +1,42 @@
+# Secrets / environment
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+*.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Logs / caches
+logs/
+*.log
+.cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
